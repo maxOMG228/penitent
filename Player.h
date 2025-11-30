@@ -1,0 +1,29 @@
+#pragma once
+#include <SFML/Graphics.hpp>
+
+class Player {
+public:
+	sf::RectangleShape hitbox;
+	sf::RectangleShape swordHitbox;
+
+	sf::Texture texture;
+	sf::Sprite sprite;
+
+	int hp;
+	int maxHp;
+	float speed;
+
+	bool isAttacking;
+	float currentAttackAngle;
+	Player(float startX, float startY);
+	std::vector<int> enemiesHitInThisAttack;
+
+	sf::Clock attackTimer;
+	sf::Clock cooldownTimer;
+	float attackDuration;
+	float attackCooldown;
+
+	void update(sf::RenderWindow& window);
+	void draw(sf::RenderWindow& window);
+};
+
