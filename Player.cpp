@@ -8,7 +8,7 @@ Player::Player(float startX, float startY) {
 	maxHp = 100;
 	speed = 5.f;
 
-	if (!texture.loadFromFile("C:\\panties\\x64\\Debug\\textures\\rogue.png")) {
+	if (!texture.loadFromFile("textures\\rogue.png")) {
 		// Якщо помилка, спрайт буде просто білим
 	}
 

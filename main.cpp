@@ -39,7 +39,7 @@ int main()
 
     // --- ФОН ---
     Texture bgTexture;
-    if (!bgTexture.loadFromFile("C:\\panties\\x64\\Debug\\textures\\background.jpg")) {
+    if (!bgTexture.loadFromFile("textures\\background.jpg")) {
         // Якщо фону немає, код не впаде, але екран буде чорним
         std::cout << "Background not found!" << std::endl;
     }
