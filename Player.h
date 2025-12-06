@@ -12,6 +12,7 @@ public:
 	int hp;
 	int maxHp;
 	float speed;
+	int damage;
 
 	bool isAttacking;
 	float currentAttackAngle;

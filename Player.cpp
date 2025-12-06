@@ -7,6 +7,7 @@ Player::Player(float startX, float startY) {
 	hp = 100;
 	maxHp = 100;
 	speed = 5.f;
+	damage = 1;
 
 	if (!texture.loadFromFile("textures\\rogue.png")) {
 		// Якщо помилка, спрайт буде просто білим

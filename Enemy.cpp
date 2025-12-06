@@ -1,6 +1,7 @@
 #include "Enemy.h"
 #include <cmath>
 
+
 Enemy::Enemy(float x, float y, int room, EnemyType t) {
 	startX = x;
 	startY = y;
