@@ -105,7 +105,10 @@ void Dungeon::generateRandomLevel(int roomCount) {
             else { 
                 newRoom->type = Normal;
                 int enemyCount = rand() % 3 + 1;
-                for (int e = 0; e < enemyCount;) newRoom->addEnemy(100.f + rand() % 600, 100.f + rand() % 400, BaseEnemy), e++;
+                for (int e = 0; e < enemyCount; e++) {
+                    EnemyType randomType = (rand() % 2 == 0) ? BaseEnemy : ArcherEnemy;
+                    newRoom->addEnemy(100.f + rand() % 600, 100.f + rand() % 400, randomType);
+                }
             }
 
 			newRoom->generateBackground(tileset, 800, 600);
@@ -190,10 +193,27 @@ void Dungeon::update(Player& player, float winW, float winH) {
             enemy.update(player.hitbox.getPosition());
 
             // ¬орог атакуЇ гравц€
+            if (enemy.type == BaseEnemy) {
             if (player.hitbox.getGlobalBounds().intersects(enemy.Shape.getGlobalBounds())) {
-                if (damageClock.getElapsedTime().asSeconds() >= iFrameCooldown) {
+                if (damageClock.getElapsedTime().asSeconds() >= iFrameCooldown && !player.isRolling) {
                     player.hp -= 10;
                     damageClock.restart();
+                }
+            }
+            }
+            // bullet damage
+            for (size_t b = 0; b < enemy.bullets.size(); ) {
+                if (player.hitbox.getGlobalBounds().intersects(enemy.bullets[b].shape.getGlobalBounds())) {
+                    if (!player.isRolling) {
+                    player.hp -= 10;
+                    enemy.bullets.erase(enemy.bullets.begin() + b);
+                    }
+                    else {
+                        b++;
+                    }
+                }
+                else {
+                    b++;
                 }
             }
 
@@ -230,13 +250,13 @@ void Dungeon::draw(sf::RenderWindow& window) {
 
     activeRoom->backgroundSprite.setTexture(activeRoom->backgroundTexture);
 
-	window.draw(activeRoom->backgroundSprite);
+    window.draw(activeRoom->backgroundSprite);
 
     for (auto& art : activeRoom->artifacts) {
         art->draw(window);
-	}
+    }
 
-	for (auto& chest : activeRoom->chests) {
+    for (auto& chest : activeRoom->chests) {
         chest->sprite.setTexture(chest->texture);
 
         window.draw(chest->sprite);
@@ -246,11 +266,21 @@ void Dungeon::draw(sf::RenderWindow& window) {
         if (activeRoom->nextRoomIndex[i] != -1) {
             window.draw(doorTriggers[i]);
         }
-	}
+    }
 
-    for (const auto& enemy : activeRoom->enemies) {
+    for (auto& enemy : activeRoom->enemies) {
         if (enemy.isEnemyAlive) {
-            window.draw(enemy.Shape);
+            enemy.sprite.setTexture(enemy.texture);
+            window.draw(enemy.sprite);
+
+            for (auto& bullet : enemy.bullets) {
+                if (Bullet::isTextureLoaded) {
+                    window.draw(bullet.sprite);
+                }
+                else {
+                    window.draw(bullet.shape);
+                }
+            }
         }
     }
 }

@@ -26,7 +26,7 @@ DamageRing::DamageRing(float x, float y) : Artifact(x, y) {
 		sprite.setColor(sf::Color::Cyan);
 	}
 	sprite.setTexture(texture);
-	sprite.setScale(2.f, 2.f);
+	sprite.setScale(4.f, 4.f);
 }	
 
 void DamageRing::apply(Player& player) {

@@ -14,6 +14,15 @@ public:
 	float speed;
 	int damage;
 
+	bool isRolling;
+	sf::Vector2f rollDirection;
+	float rollSpeed;
+	sf::Clock rollTimer;
+	float rollDuration;
+
+	sf::Clock rollCooldownTimer;
+	float rollCooldown;
+
 	bool isAttacking;
 	float currentAttackAngle;
 	Player(float startX, float startY);

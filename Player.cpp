@@ -9,6 +9,11 @@ Player::Player(float startX, float startY) {
 	speed = 5.f;
 	damage = 1;
 
+	isRolling = false;
+	rollSpeed = 10.f;
+	rollDuration = 0.3f;
+	rollCooldown = 1.0f;
+
 	if (!texture.loadFromFile("textures\\rogue.png")) {
 		// Якщо помилка, спрайт буде просто білим
 	}
@@ -39,6 +44,32 @@ Player::Player(float startX, float startY) {
 }
 
 void Player::update(sf::RenderWindow& window) {
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && !isRolling && rollCooldownTimer.getElapsedTime().asSeconds() > rollCooldown) {
+		float dirX = 0.f;
+		float dirY = 0.f;
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) dirX = -1.f;
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) dirX = 1.f;
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) dirY = -1.f;
+		if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) dirY = 1.f;
+
+		if (dirX != 0 || dirY != 0) {
+			isRolling = true;
+			rollTimer.restart();
+			rollCooldownTimer.restart();
+
+			float length = std::sqrt(dirX * dirX + dirY * dirY);
+			rollDirection = sf::Vector2f(dirX / length, dirY / length);
+		}
+	}
+
+	if (isRolling) {
+		hitbox.move(rollDirection * rollSpeed);
+
+		if (rollTimer.getElapsedTime().asSeconds() > rollDuration) {
+			isRolling = false;
+		}
+	}else{
+
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
 		hitbox.move(0, -speed);
 	}
@@ -51,7 +82,8 @@ void Player::update(sf::RenderWindow& window) {
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
 		hitbox.move(+speed, 0);
 	}
-
+	sprite.setPosition(hitbox.getPosition());
+}
 	sf::Vector2i mousePixelPos = sf::Mouse::getPosition(window);
 	sf::Vector2f mousePos = window.mapPixelToCoords(mousePixelPos);
 
@@ -59,7 +91,7 @@ void Player::update(sf::RenderWindow& window) {
 	sprite.setPosition(hitbox.getPosition());
 
 
-	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && cooldownTimer.getElapsedTime().asSeconds() > attackCooldown) {
+	if (sf::Mouse::isButtonPressed(sf::Mouse::Left) && cooldownTimer.getElapsedTime().asSeconds() > attackCooldown) {
 		isAttacking = true;
 		attackTimer.restart();
 		cooldownTimer.restart();
