@@ -24,8 +24,11 @@ public:
 	int nextRoomIndex[4];
 	RoomType type;
 
-	sf::Texture backgroundTexture;
+	float roomWidth;
+	float roomHeight;
+
 	sf::Sprite backgroundSprite;
+	sf::Texture bakedTexture;
 
 	sf::Vector2f spawnPosition;
 
@@ -39,7 +42,7 @@ public:
 		chests.clear();
 	}
 
-	void generateBackground(sf::Texture& tileset, int width, int height);
+	void generateBackground(sf::Texture& tileset, float w, float h);
 
 	void addEnemy(float x, float y, EnemyType type);
 

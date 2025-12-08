@@ -16,6 +16,8 @@ int main()
     const int windowWidth = 800;
     const int windowHeight = 600;
 
+    sf::View camera(sf::Vector2f(0.f, 0.f), sf::Vector2f(windowWidth, windowHeight));
+
     sf::RenderWindow window(sf::VideoMode(windowWidth, windowHeight), "Penitent Game");
     window.setFramerateLimit(60);
 
@@ -92,16 +94,47 @@ int main()
         if (!isDead)
         {
 			// player update
-            player.update(window);
+            player.update(window, camera);
             dungeon.update(player, windowWidth, windowHeight);
 
-            // movement limits
-            Vector2f pos = player.hitbox.getPosition();
-            if (pos.x < 25.f) player.hitbox.setPosition(25.f, pos.y);
-            if (pos.x > windowWidth - 25.f) player.hitbox.setPosition(windowWidth - 25.f, pos.y);
-            if (pos.y < 25.f) player.hitbox.setPosition(pos.x, 25.f);
-            if (pos.y > windowHeight - 25.f) player.hitbox.setPosition(pos.x, windowHeight - 25.f);
+            Room* currentRoom = dungeon.rooms[dungeon.currentRoomIndex];
+            float currentRoomW = dungeon.rooms[dungeon.currentRoomIndex]->roomWidth;
+            float currentRoomH = dungeon.rooms[dungeon.currentRoomIndex]->roomHeight;
 
+
+            float camX = player.hitbox.getPosition().x;
+            float camY = player.hitbox.getPosition().y;
+
+            if (camX <= windowWidth / 2.f) {
+                camX = windowWidth / 2.f;
+            }
+            else if (camX > currentRoomW - windowWidth / 2.f) {
+                camX = currentRoomW - windowWidth / 2.f;
+            }
+
+
+            if (camY < windowHeight / 2.f) {
+                camY = windowHeight / 2.f;
+            }
+            else if (camY > currentRoomH - windowHeight / 2.f) {
+                camY = currentRoomH - windowHeight / 2.f;
+            }
+
+            camera.setCenter(camX, camY);
+
+            // movement limits
+            currentRoom = dungeon.rooms[dungeon.currentRoomIndex];
+            if (!dungeon.rooms.empty() && dungeon.currentRoomIndex >= 0 && dungeon.currentRoomIndex < dungeon.rooms.size())
+            {
+                float currentRoomW = currentRoom->roomWidth;
+                float currentRoomH = currentRoom->roomHeight;
+
+                Vector2f pos = player.hitbox.getPosition();
+                if (pos.x < 25.f) player.hitbox.setPosition(25.f, pos.y);
+                if (pos.x > currentRoomW - 25.f) player.hitbox.setPosition(currentRoomW - 25.f, pos.y);
+                if (pos.y < 25.f) player.hitbox.setPosition(pos.x, 25.f);
+                if (pos.y > currentRoomH - 25.f) player.hitbox.setPosition(pos.x, currentRoomH - 25.f);
+            }
             // dinamic HP BAR
             
             float hpPercent = (float)player.hp / (float)player.maxHp;
@@ -116,9 +149,12 @@ int main()
 		// DRAWING
         window.clear();
 
+        window.setView(camera);
+
         dungeon.draw(window);
         player.draw(window);
         
+        window.setView(window.getDefaultView());
         window.draw(hpBarBack);
         window.draw(hpBarFront);
 

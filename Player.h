@@ -33,7 +33,7 @@ public:
 	float attackDuration;
 	float attackCooldown;
 
-	void update(sf::RenderWindow& window);
+	void update(sf::RenderWindow& window, sf::View& view);
 	void draw(sf::RenderWindow& window);
 };
 

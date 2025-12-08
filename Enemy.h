@@ -78,6 +78,6 @@ public:
 
 	Enemy(float x, float y, int room, EnemyType type);
 
-	void update(sf::Vector2f playerPos);
+	void update(sf::Vector2f playerPos, float roomW, float roomH);
 };
 

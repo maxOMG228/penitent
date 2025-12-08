@@ -51,7 +51,7 @@ Enemy::Enemy(float x, float y, int room, EnemyType t) {
 
 
 
-void Enemy::update(sf::Vector2f playerPos) {
+void Enemy::update(sf::Vector2f playerPos, float roomW, float roomH) {
 	if (!isEnemyAlive) return;
 
 	for (int i = 0; i < bullets.size(); i++) {
@@ -162,12 +162,12 @@ void Enemy::update(sf::Vector2f playerPos) {
 
 	sf::Vector2f pos = Shape.getPosition();
 
-	if (pos.x < 20.f) Shape.setPosition(20.f, pos.y);
-	if (pos.x > 780.f) Shape.setPosition(780.f, pos.y);
+	if (pos.x < 20.f) pos.x = 20.f;
+	if (pos.x > roomW - 20.f) pos.x = roomW - 20.f;
 
-	if (pos.y < 20.f) Shape.setPosition(pos.x, 20.f);
-	if (pos.y > 580.f) Shape.setPosition(pos.x, 580.f);
+	if (pos.y < 20.f) pos.y = 20.f;
+	if (pos.y > roomH - 20.f) pos.y = roomH - 20.f;
 
-	sprite.setPosition(Shape.getPosition());
+	sprite.setPosition(pos);
 }
 

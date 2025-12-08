@@ -14,17 +14,12 @@ Dungeon::Dungeon(float winW, float winH) {
 
 	loadTextures();
 
-    doorPositions[0] = sf::Vector2f(winW / 2.f, 10.f);          // Top
-    doorPositions[1] = sf::Vector2f(winW - 10.f, winH / 2.f);   // Right
-    doorPositions[2] = sf::Vector2f(winW / 2.f, winH - 10.f);   // Bottom
-    doorPositions[3] = sf::Vector2f(10.f, winH / 2.f);          // Left
-
     for (int i = 0; i < 4; i++) {
         if (i == 0 || i == 2) doorTriggers[i].setSize(sf::Vector2f(100.f, 20.f));
         else doorTriggers[i].setSize(sf::Vector2f(20.f, 100.f));
 
         doorTriggers[i].setOrigin(doorTriggers[i].getSize().x / 2.f, doorTriggers[i].getSize().y / 2.f);
-        doorTriggers[i].setPosition(doorPositions[i]);
+        doorTriggers[i].setPosition(-500.f, -500.f);
     }
 }
 
@@ -97,6 +92,7 @@ void Dungeon::generateRandomLevel(int roomCount) {
             if (roomTypeChance < 20) {
 				newRoom->type = Treasure;
 				newRoom->isCleared = true;
+                newRoom->generateBackground(tileset, 800, 600);
 
                 Chest* chest = new Chest(400.f, 300.f);
                 chest->setLoot(getRandomArtifact(400.f, 300.f));
@@ -104,16 +100,18 @@ void Dungeon::generateRandomLevel(int roomCount) {
             }
             else { 
                 newRoom->type = Normal;
+
+                float randomW = 1000.f + (rand() % 11) * 100.f;
+                float randomH = 1000.f + (rand() % 11) * 100.f;
+
+                newRoom->generateBackground(tileset, randomW, randomH);
+
                 int enemyCount = rand() % 3 + 1;
                 for (int e = 0; e < enemyCount; e++) {
                     EnemyType randomType = (rand() % 2 == 0) ? BaseEnemy : ArcherEnemy;
-                    newRoom->addEnemy(100.f + rand() % 600, 100.f + rand() % 400, randomType);
+                    newRoom->addEnemy(100.f + rand() % ((int)randomW - 200), 100.f + rand() % ((int)randomH - 200), randomType);
                 }
             }
-
-			newRoom->generateBackground(tileset, 800, 600);
-
-
 
             rooms.push_back(newRoom);
             int newID = rooms.size() - 1;
@@ -136,6 +134,14 @@ void Dungeon::update(Player& player, float winW, float winH) {
     Room* activeRoom = rooms[currentRoomIndex];
     activeRoom->updateStatus();
 
+    float w = activeRoom->roomWidth;
+    float h = activeRoom->roomHeight;
+
+    doorTriggers[0].setPosition(w / 2.f, 10.f);          // Top
+    doorTriggers[1].setPosition(w - 10.f, h / 2.f);      // Right 
+    doorTriggers[2].setPosition(w / 2.f, h - 10.f);      // Bottom 
+    doorTriggers[3].setPosition(10.f, h / 2.f);          // Left
+
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
         for (auto chest : activeRoom->chests) {
             if (!chest->isOpen && player.hitbox.getGlobalBounds().intersects(chest->sprite.getGlobalBounds())) {
@@ -148,29 +154,55 @@ void Dungeon::update(Player& player, float winW, float winH) {
         }
     }
 
-    for (int i = 0; i < 4; i++) {
 
-        if (activeRoom->nextRoomIndex[i] != -1) {
-            if (activeRoom->isCleared) doorTriggers[i].setFillColor(sf::Color::Green);
-            else doorTriggers[i].setFillColor(sf::Color::Red);
+        for (int i = 0; i < 4; i++) {
 
-            if (player.hitbox.getGlobalBounds().intersects(doorTriggers[i].getGlobalBounds())) {
-                if (activeRoom->isCleared) {
-                    currentRoomIndex = activeRoom->nextRoomIndex[i];
+            if (activeRoom->nextRoomIndex[i] != -1) {
+                if (activeRoom->isCleared) doorTriggers[i].setFillColor(sf::Color::Green);
+                else doorTriggers[i].setFillColor(sf::Color::Red);
 
-                    int oppositeSide = (i + 2) % 4;
-                    sf::Vector2f spawnPos = doorPositions[oppositeSide];
+                if (player.hitbox.getGlobalBounds().intersects(doorTriggers[i].getGlobalBounds())) {
+                    if (activeRoom->isCleared) {
+                        int nextRoomID = activeRoom->nextRoomIndex[i];
+                        int entryDoorSide = (i + 2) % 4;
 
-                    if (oppositeSide == 0) spawnPos.y += 100;
-                    if (oppositeSide == 1) spawnPos.x -= 100;
-                    if (oppositeSide == 2) spawnPos.y -= 100;
-                    if (oppositeSide == 3) spawnPos.x += 100;
+                        currentRoomIndex = activeRoom->nextRoomIndex[i];
+                        Room* nextRoom = rooms[currentRoomIndex];
 
-                    player.hitbox.setPosition(spawnPos);
+                        //new room size
+                        float nextW = nextRoom->roomWidth;
+                        float nextH = nextRoom->roomHeight;
+
+                        sf::Vector2f spawnPos;
+                        float offset = 150.f;
+
+                        switch (entryDoorSide) {
+                        case 0:
+                            spawnPos.x = nextW / 2.f;
+                            spawnPos.y = 10.f + offset;
+                            break;
+                        case 1:
+                            spawnPos.x = nextW - 10.f - offset;
+                            spawnPos.y = nextH / 2.f;
+                            break;
+                        case 2:
+                            spawnPos.x = nextW / 2.f;
+                            spawnPos.y = nextH - 10.f - offset;
+                            break;
+                        case 3:
+                            spawnPos.x = 10.f + offset;
+                            spawnPos.y = nextH / 2.f;
+                            break;
+                        }
+
+                        player.hitbox.setPosition(spawnPos);
+
+                        return;
+                    }
                 }
             }
         }
-    }
+    
 
     // artifacts
     for (auto it = activeRoom->artifacts.begin(); it != activeRoom->artifacts.end();) {
@@ -185,12 +217,16 @@ void Dungeon::update(Player& player, float winW, float winH) {
         }
     }
 
+    float currentRoomW = activeRoom->roomWidth;
+    float currentRoomH = activeRoom->roomHeight;
+
     // Використовуємо size_t, щоб уникнути попереджень про типи даних
+
     for (size_t i = 0; i < activeRoom->enemies.size(); i++) {
         Enemy& enemy = activeRoom->enemies[i];
 
         if (enemy.isEnemyAlive) {
-            enemy.update(player.hitbox.getPosition());
+            enemy.update(player.hitbox.getPosition(), currentRoomW, currentRoomH);
 
             // Ворог атакує гравця
             if (enemy.type == BaseEnemy) {
@@ -247,8 +283,6 @@ void Dungeon::update(Player& player, float winW, float winH) {
 
 void Dungeon::draw(sf::RenderWindow& window) {
     Room* activeRoom = rooms[currentRoomIndex];
-
-    activeRoom->backgroundSprite.setTexture(activeRoom->backgroundTexture);
 
     window.draw(activeRoom->backgroundSprite);
 

@@ -13,8 +13,8 @@ public:
 	sf::RectangleShape doorTriggers[4];
 	sf::Vector2f doorPositions[4];
 
-
 	sf::Clock damageClock;
+
 	float iFrameCooldown;
 
 	sf::Sprite backgroundSprite;

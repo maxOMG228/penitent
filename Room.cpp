@@ -9,9 +9,12 @@ Room::Room() {
 }
 }
 
-void Room::generateBackground(sf::Texture& tileset, int width, int height) {
+void Room::generateBackground(sf::Texture& tileset, float w, float h) {
+	roomWidth = w;
+	roomHeight = h;
+	
 	sf::RenderTexture rt;
-	if (!rt.create(width, height)) return;
+	if (!rt.create(static_cast<unsigned int>(w), static_cast<unsigned int>(h))) return;
 
 	rt.clear(sf::Color::Black);
 
@@ -20,11 +23,10 @@ void Room::generateBackground(sf::Texture& tileset, int width, int height) {
 	float scale = 4.f;
 	tile.setScale(scale, scale);
 
-	int tileSize = 16;
-	int drawnSize = tileSize * scale;
+	int drawnSize = 16 * scale;
 
-	for (int y = 0; y < height; y += drawnSize) {
-		for (int x = 0; x < width; x += drawnSize) {
+	for (int y = 0; y < static_cast<int>(h); y += drawnSize) {
+		for (int x = 0; x < static_cast<int>(w); x += drawnSize) {
 
 			if (this->type == Treasure) {
 				tile.setTextureRect(sf::IntRect(48, 112, 16, 16));
@@ -47,8 +49,9 @@ void Room::generateBackground(sf::Texture& tileset, int width, int height) {
 	}
 	rt.display();
 
-	backgroundTexture = rt.getTexture();
-	backgroundSprite.setTexture(backgroundTexture);
+	this->bakedTexture = rt.getTexture(); 
+	this->backgroundSprite.setTexture(this->bakedTexture);
+	this->backgroundSprite.setTextureRect(sf::IntRect(0, 0, (int)w, (int)h));
 		
 }
 

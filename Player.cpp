@@ -43,7 +43,7 @@ Player::Player(float startX, float startY) {
 
 }
 
-void Player::update(sf::RenderWindow& window) {
+void Player::update(sf::RenderWindow& window, sf::View& view) {
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::Space) && !isRolling && rollCooldownTimer.getElapsedTime().asSeconds() > rollCooldown) {
 		float dirX = 0.f;
 		float dirY = 0.f;
@@ -84,8 +84,8 @@ void Player::update(sf::RenderWindow& window) {
 	}
 	sprite.setPosition(hitbox.getPosition());
 }
-	sf::Vector2i mousePixelPos = sf::Mouse::getPosition(window);
-	sf::Vector2f mousePos = window.mapPixelToCoords(mousePixelPos);
+
+	sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window), view);
 
 	sf::Vector2f playerPos = hitbox.getPosition();
 	sprite.setPosition(hitbox.getPosition());
