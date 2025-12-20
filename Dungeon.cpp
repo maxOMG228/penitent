@@ -108,7 +108,13 @@ void Dungeon::generateRandomLevel(int roomCount) {
 
                 int enemyCount = rand() % 3 + 1;
                 for (int e = 0; e < enemyCount; e++) {
-                    EnemyType randomType = (rand() % 2 == 0) ? BaseEnemy : ArcherEnemy;
+                    int typeRoll = rand() % 3;
+                    EnemyType randomType;
+
+                    if (typeRoll == 0) randomType = BaseEnemy;
+                    else if (typeRoll == 1) randomType = ArcherEnemy;
+                    else randomType = MelleSkeleton;
+
                     newRoom->addEnemy(100.f + rand() % ((int)randomW - 200), 100.f + rand() % ((int)randomH - 200), randomType);
                 }
             }
@@ -237,6 +243,25 @@ void Dungeon::update(Player& player, float winW, float winH) {
                 }
             }
             }
+            else if (enemy.type == MelleSkeleton) {
+                float dx = player.hitbox.getPosition().x - enemy.Shape.getPosition().x;
+                float dy = player.hitbox.getPosition().y - enemy.Shape.getPosition().y;
+                float dist = std::sqrt(dx * dx + dy * dy);
+
+                    if (enemy.readyToHit) {
+
+                        float dx = player.hitbox.getPosition().x - enemy.Shape.getPosition().x;
+                        float dy = player.hitbox.getPosition().y - enemy.Shape.getPosition().y;
+                        float dist = std::sqrt(dx * dx + dy * dy);
+
+                        if (dist <= enemy.attackRange + 20.f) {
+                            if (!player.isRolling) {
+                                player.hp -= enemy.damage;
+                        }
+                    }
+                }
+            }
+
             // bullet damage
             for (size_t b = 0; b < enemy.bullets.size(); ) {
                 if (player.hitbox.getGlobalBounds().intersects(enemy.bullets[b].shape.getGlobalBounds())) {

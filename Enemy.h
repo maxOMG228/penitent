@@ -1,6 +1,6 @@
 #pragma once
 #include <SFML/Graphics.hpp>
-#include <Vector>
+#include <vector>
 #include <iostream>
 
 struct Bullet {
@@ -51,6 +51,7 @@ struct Bullet {
 enum EnemyType {
 	BaseEnemy,
 	ArcherEnemy,
+	MelleSkeleton,
 };
 
 class Enemy
@@ -69,6 +70,15 @@ public:
 	int frameWidth;
 	int frameHeight;
 	float animTimer;
+
+	float attackRange;
+	float attackCooldown;
+	sf::Clock attackTimer;
+	int damage;
+	bool isPreparingAttack;
+	sf::Clock windUpTimer;
+	float windUpDuration;
+	bool readyToHit;
 
 	EnemyType type;
 
