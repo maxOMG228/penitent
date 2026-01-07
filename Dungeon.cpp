@@ -50,6 +50,8 @@ void Dungeon::generateRandomLevel(int roomCount) {
 
 	Room* startRoom = new Room();
 	startRoom->isCleared = true;
+    startRoom->gridX = 0;
+    startRoom->gridY = 0;
 
     startRoom->generateBackground(tileset, 800, 600);
     std::map<std::pair<int, int>, int> grid;
@@ -108,7 +110,7 @@ void Dungeon::generateRandomLevel(int roomCount) {
 
                 int enemyCount = rand() % 3 + 1;
                 for (int e = 0; e < enemyCount; e++) {
-                    int typeRoll = rand() % 3;
+                    int typeRoll =  rand() % 3;
                     EnemyType randomType;
 
                     if (typeRoll == 0) randomType = BaseEnemy;
@@ -118,6 +120,9 @@ void Dungeon::generateRandomLevel(int roomCount) {
                     newRoom->addEnemy(100.f + rand() % ((int)randomW - 200), 100.f + rand() % ((int)randomH - 200), randomType);
                 }
             }
+
+            newRoom->gridX = nextX;
+            newRoom->gridY = nextY;
 
             rooms.push_back(newRoom);
             int newID = rooms.size() - 1;
@@ -140,6 +145,18 @@ void Dungeon::update(Player& player, float winW, float winH) {
     Room* activeRoom = rooms[currentRoomIndex];
     activeRoom->updateStatus();
 
+    if (activeRoom->isCleared && !activeRoom->rewardSpawned && activeRoom->type != Treasure) {
+        int roll = rand() % 100;
+        if (roll < 100) {
+            float spawnX = activeRoom->roomWidth / 2.f;
+            float spawnY = activeRoom->roomHeight / 2.f;
+
+            activeRoom->artifacts.push_back(new Key(spawnX, spawnY));
+            std::cout << "Loot spawned: Key!" << std::endl;
+        }
+        activeRoom->rewardSpawned = true;
+    }
+
     float w = activeRoom->roomWidth;
     float h = activeRoom->roomHeight;
 
@@ -151,10 +168,16 @@ void Dungeon::update(Player& player, float winW, float winH) {
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::E)) {
         for (auto chest : activeRoom->chests) {
             if (!chest->isOpen && player.hitbox.getGlobalBounds().intersects(chest->sprite.getGlobalBounds())) {
-                Artifact* droppedItem = chest->open();
-                if (droppedItem != nullptr) {
-                    activeRoom->artifacts.push_back(droppedItem);
-                    std::cout << "Chest opened!" << std::endl;
+                if (player.keys > 0) {
+                    player.keys--;
+                    Artifact* droppedItem = chest->open();
+                    if (droppedItem != nullptr) {
+                        activeRoom->artifacts.push_back(droppedItem);
+                        std::cout << "Chest opened!" << std::endl;
+                    }
+                }
+                else {
+                    std::cout << "Locked! You need a key." << std::endl;
                 }
             }
         }
@@ -329,7 +352,7 @@ void Dungeon::draw(sf::RenderWindow& window) {
 
     for (auto& enemy : activeRoom->enemies) {
         if (enemy.isEnemyAlive) {
-            enemy.sprite.setTexture(enemy.texture);
+            //enemy.sprite.setTexture(enemy.texture);
             window.draw(enemy.sprite);
 
             for (auto& bullet : enemy.bullets) {
@@ -341,5 +364,50 @@ void Dungeon::draw(sf::RenderWindow& window) {
                 }
             }
         }
+    }
+}
+
+void Dungeon::drawMinimap(sf::RenderWindow& window) {
+    float cellSize = 15.f;
+    float padding = 2.f;
+
+    float mapOriginX = window.getSize().x - 100.f;
+    float mapOriginY = 100.f;
+    int playerGridX = rooms[currentRoomIndex]->gridX;
+    int playerGridY = rooms[currentRoomIndex]->gridY;
+
+    sf::RectangleShape cell(sf::Vector2f(cellSize, cellSize));
+
+    for (auto& room : rooms) {
+
+        int relX = room->gridX - playerGridX;
+        int relY = room->gridY - playerGridY;
+
+        float drawX = mapOriginX + (relX * (cellSize + padding));
+        float drawY = mapOriginY + (relY * (cellSize + padding));
+
+        cell.setPosition(drawX, drawY);
+
+        if (room == rooms[currentRoomIndex]) {
+            cell.setFillColor(sf::Color::Cyan);
+            cell.setOutlineThickness(2.f);
+            cell.setOutlineColor(sf::Color::White);
+        }
+        else {
+            cell.setOutlineThickness(0.f);
+            if (room->type == Treasure) {
+                cell.setFillColor(sf::Color::Yellow);
+            }
+            else if (room->type == Boss) {
+                cell.setFillColor(sf::Color::Red);
+            }
+            else if (room->isCleared) {
+                cell.setFillColor(sf::Color(100, 255, 100));
+            }
+            else {
+                cell.setFillColor(sf::Color(100, 100, 100));
+            }
+        }
+        window.draw(cell);
     }
 }

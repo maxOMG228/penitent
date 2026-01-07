@@ -158,6 +158,8 @@ int main()
         window.draw(hpBarBack);
         window.draw(hpBarFront);
 
+        dungeon.drawMinimap(window);
+
 
         if (isDead) {
             window.draw(gameOverText);

@@ -29,4 +29,5 @@ public:
 
 	void update(Player& player, float winW, float winH);
 	void draw(sf::RenderWindow& window);
+	void drawMinimap(sf::RenderWindow& window);
 };

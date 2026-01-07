@@ -5,6 +5,7 @@ const float PI = 3.14159265f;
 
 Player::Player(float startX, float startY) {
 	hp = 100;
+	keys = 0;
 	maxHp = 100;
 	speed = 5.f;
 	damage = 1;
@@ -14,13 +15,22 @@ Player::Player(float startX, float startY) {
 	rollDuration = 0.3f;
 	rollCooldown = 1.0f;
 
-	if (!texture.loadFromFile("textures\\rogue.png")) {
-		// Якщо помилка, спрайт буде просто білим
+	if (!texture.loadFromFile("textures\\rogue spritesheet calciumtrice.png")) {
 	}
 
+	numFrames = 10;
+	timePerFrame = 0.1f;
+	currentFrame = 0;
+	animTimer.restart();
+
+	frameWidth = texture.getSize().x / numFrames;
+	frameHeight = texture.getSize().y / 10;
+
+	sprite.setTextureRect(sf::IntRect(0, 0, frameWidth, frameHeight));
+
 	sprite.setTexture(texture);
-	sprite.setOrigin(texture.getSize().x / 2.f, texture.getSize().y / 2.f);
-	sprite.setScale(0.5f, 0.5f);
+	sprite.setOrigin(frameWidth / 2.f, frameHeight / 2.f);
+	sprite.setScale(2.5f, 2.5f);
 
 	hitbox.setSize(sf::Vector2f(50.f, 80.f));
 	hitbox.setOrigin(hitbox.getSize().x / 2.f, hitbox.getSize().y / 2.f);
@@ -69,20 +79,44 @@ void Player::update(sf::RenderWindow& window, sf::View& view) {
 			isRolling = false;
 		}
 	}else{
+		bool isMoving = false;
 
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
 		hitbox.move(0, -speed);
+		isMoving = true;
 	}
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
 		hitbox.move(0, +speed);
+		isMoving = true;
 	}
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
 		hitbox.move(-speed, 0);
+		isMoving = true;
 	}
 	if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
 		hitbox.move(+speed, 0);
+		isMoving = true;
 	}
 	sprite.setPosition(hitbox.getPosition());
+
+	if (isMoving) {
+		if (animTimer.getElapsedTime().asSeconds() > timePerFrame) {
+			animTimer.restart();
+			currentFrame++;
+
+			if (currentFrame >= numFrames) {
+				currentFrame = 0;
+			}
+		}
+}
+	else {
+		currentFrame = 0;
+	}
+	int animationRow = 2;
+
+	int left = currentFrame * frameWidth;
+	int top = animationRow * frameHeight;
+	sprite.setTextureRect(sf::IntRect(left, top, frameWidth, frameHeight));
 }
 
 	sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window), view);
@@ -117,10 +151,10 @@ void Player::update(sf::RenderWindow& window, sf::View& view) {
 	}
 
 	if (mousePos.x < hitbox.getPosition().x) {
-		sprite.setScale(-0.5f, 0.5f);
+		sprite.setScale(-2.5f, 2.5f);
 	}
 	else {
-		sprite.setScale(0.5f, 0.5f);
+		sprite.setScale(2.5f, 2.5f);
 	}
 }
 

@@ -29,6 +29,12 @@ public:
 	}
 };
 
+class Key : public Artifact {
+public:
+	Key(float x, float y);
+	void apply(Player& player) override;
+};
+
 class SpeedBoots : public Artifact {
 public:
 	SpeedBoots(float x, float y);

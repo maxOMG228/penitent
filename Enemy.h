@@ -70,6 +70,7 @@ public:
 	int frameWidth;
 	int frameHeight;
 	float animTimer;
+	float animSpeed;
 
 	float attackRange;
 	float attackCooldown;
@@ -79,6 +80,17 @@ public:
 	sf::Clock windUpTimer;
 	float windUpDuration;
 	bool readyToHit;
+
+	//attack animation
+	sf::Texture attackTexture;
+	int attackFrameCount; 
+	int attackFrameWidth;
+	int attackFrameHeight;
+
+	//walking animation
+	sf::Texture walkTexture;
+	int walkFrameCount;
+
 
 	EnemyType type;
 

@@ -21,8 +21,12 @@ public:
 	std::vector<Chest*> chests;
 
 	bool isCleared;
+	bool rewardSpawned;
 	int nextRoomIndex[4];
 	RoomType type;
+
+	int gridX;
+	int gridY;
 
 	float roomWidth;
 	float roomHeight;

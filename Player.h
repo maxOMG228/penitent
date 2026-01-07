@@ -3,6 +3,16 @@
 
 class Player {
 public:
+
+	// animation
+	int frameWidth;
+	int frameHeight;
+	int currentFrame;
+	int numFrames;
+
+	sf::Clock animTimer;
+	float timePerFrame;
+
 	sf::RectangleShape hitbox;
 	sf::RectangleShape swordHitbox;
 
@@ -32,6 +42,8 @@ public:
 	sf::Clock cooldownTimer;
 	float attackDuration;
 	float attackCooldown;
+
+	int keys;
 
 	void update(sf::RenderWindow& window, sf::View& view);
 	void draw(sf::RenderWindow& window);

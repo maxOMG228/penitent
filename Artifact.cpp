@@ -2,6 +2,20 @@
 #include "Player.h"
 #include <iostream>
 
+Key::Key(float x, float y) : Artifact(x, y) {
+	if (!texture.loadFromFile("textures/items/key.png")) {
+	}
+	sprite.setTexture(texture);
+	sprite.setPosition(x, y);
+	sprite.setOrigin(texture.getSize().x / 2.f, texture.getSize().y / 2.f);
+	sprite.setScale(2.f, 2.f);
+}
+
+void Key::apply(Player& player) {
+	player.keys++; // +key to player
+	std::cout << "Picked up a Key! Total: " << player.keys << std::endl;
+}
+
 // Boots
 SpeedBoots::SpeedBoots(float x, float y) : Artifact(x, y) {
 	name = "Boots of Speed";

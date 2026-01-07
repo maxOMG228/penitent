@@ -15,32 +15,45 @@ Enemy::Enemy(float x, float y, int room, EnemyType t) {
 	jumpTimer.restart();
 	shootTimer.restart();
 	attackTimer.restart();
+	windUpTimer.restart();
 	isPreparingAttack = false;
 	readyToHit = false;
 	windUpDuration = 0.5f;
 	shootInterval = 0.f;
 
 	if (type == MelleSkeleton) {
-		if (!texture.loadFromFile("textures/enemyes/Base_Slime_anim.png")) {
+		if (!texture.loadFromFile("textures/Enemy_Animations_Set/enemies-skeleton1_idle.png")) {
+		}
+		if (!attackTexture.loadFromFile("textures/Enemy_Animations_Set/enemies-skeleton1_attack.png")) {
+			std::cout << "Error loading attack texture" << std::endl;
+		}
+		if (!walkTexture.loadFromFile("textures/Enemy_Animations_Set/enemies-skeleton1_movement.png")) {
 		}
 		frameWidth = 23;
 		frameHeight = 29;
+		attackFrameCount = 9;
+		attackFrameWidth = 32;
+		attackFrameHeight = attackTexture.getSize().y;
+
+		walkFrameCount = 10;
+		int walkFrameWidth = 32;
 
 		hp = 20;
-		damage = 15; 
+		damage = 15;
 		attackRange = 40.f;
 		attackCooldown = 1.5f;
 		windUpDuration = 0.6f;
 
 		sprite.setTexture(texture);
 		sprite.setTextureRect(sf::IntRect(0, 0, frameWidth, frameHeight));
-		sprite.setScale(2.f, 2.f);
+		sprite.setScale(4.f, 4.f);
 	}
 
 		if (type == BaseEnemy) {
 			if (!texture.loadFromFile("textures/enemyes/Base_Slime_anim.png")) {
 
 			}
+			sprite.setTexture(texture);
 			frameWidth = 23;
 			frameHeight = 29;
 			hp = 10;
@@ -51,7 +64,7 @@ Enemy::Enemy(float x, float y, int room, EnemyType t) {
 			}
 			hp = 5;
 			shootInterval = 2.f;
-
+			sprite.setTexture(texture);
 			frameWidth = texture.getSize().x;
 			frameHeight = texture.getSize().y;
 
@@ -92,6 +105,7 @@ Enemy::Enemy(float x, float y, int room, EnemyType t) {
 		float dist = std::sqrt(dx * dx + dy * dy);
 
 		if (type == BaseEnemy) {
+			sprite.setTexture(texture);
 			float time = jumpTimer.getElapsedTime().asSeconds();
 			float dirX, dirY;
 			float waitTime = 1.f;
@@ -161,6 +175,7 @@ Enemy::Enemy(float x, float y, int room, EnemyType t) {
 			}
 		}
 		else if (type == ArcherEnemy) {
+			sprite.setTexture(texture);
 			float speed = 2.5f;
 			float keepDist = 300.f;
 
@@ -183,32 +198,53 @@ Enemy::Enemy(float x, float y, int room, EnemyType t) {
 			readyToHit = false;
 
 			if (isPreparingAttack) {
-				sprite.setColor(sf::Color(255, 100, 100));
+				sprite.setTexture(attackTexture);
 
-				if (windUpTimer.getElapsedTime().asSeconds() >= windUpDuration) {
+				float timePassed = windUpTimer.getElapsedTime().asSeconds();
+
+				float progress = timePassed / windUpDuration;
+				int currentFrame = static_cast<int>(progress * attackFrameCount);
+
+				if (currentFrame >= attackFrameCount) currentFrame = attackFrameCount - 1;
+
+				int left = currentFrame * attackFrameWidth;
+				sprite.setTextureRect(sf::IntRect(left, 0, attackFrameWidth, attackFrameHeight));
+
+				sprite.setOrigin(attackFrameWidth / 2.f, attackFrameHeight / 2.f);
+
+				if (timePassed >= windUpDuration) {
 					isPreparingAttack = false;
 					readyToHit = true;
 					attackTimer.restart();
-
-					sprite.setColor(sf::Color::White);
 				}
 			}
 			else {
+				sprite.setTexture(texture);
+				sprite.setOrigin(frameWidth / 2.f, frameHeight / 2.f);
+
+				sprite.setTextureRect(sf::IntRect(0, 0, frameWidth, frameHeight));
+
 				if (dist <= attackRange && attackTimer.getElapsedTime().asSeconds() >= attackCooldown) {
 					isPreparingAttack = true;
 					windUpTimer.restart();
 				}
 
 				if (dist > attackRange) {
+					sprite.setTexture(walkTexture);
+					float time = attackTimer.getElapsedTime().asSeconds();
+					float animSpeed = 0.1f;
+					int currentWalkFrame = (int)(time / animSpeed) % walkFrameCount;
+					int walkW = 32;
+					int walkH = 32;
+					sprite.setTextureRect(sf::IntRect(currentWalkFrame* walkW, 0, walkW, walkH));
+					sprite.setOrigin(walkW / 2.f, walkH / 2.f);
 					float moveX = (dx / dist) * speed;
 					float moveY = (dy / dist) * speed;
+
 					Shape.move(moveX, moveY);
 
-					if (dx < 0) sprite.setScale(-2.f, 2.f);
-					else sprite.setScale(2.f, 2.f);
-				}
-				else {
-					//attack animation
+					if (dx < 0) sprite.setScale(-4.f, 4.f);
+					else sprite.setScale(4.f, 4.f);
 				}
 			}
 		}
