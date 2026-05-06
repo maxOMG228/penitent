@@ -67,10 +67,14 @@ public:
 	float startX, startY;
 	bool isEnemyAlive;
 	int hp;
+	int maxHp;
 	int frameWidth;
 	int frameHeight;
 	float animTimer;
 	float animSpeed;
+
+	sf::RectangleShape hpBarBack;
+	sf::RectangleShape hpBarFront;
 
 	float attackRange;
 	float attackCooldown;

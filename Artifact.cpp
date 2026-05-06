@@ -65,5 +65,10 @@ void AttackSpeedCharm::apply(Player& player) {
 		player.attackCooldown = 0.1f; // Minimum cooldown
 	}
 
+	player.attackDuration *= 0.8f;
+	if (player.attackDuration < 0.1f) {
+		player.attackDuration = 0.1f; // Minimum cooldown
+	}
+
 	std::cout << "Picked up " << name << "! Attack cooldown decreased to " << player.attackCooldown << " seconds." << std::endl;
 }

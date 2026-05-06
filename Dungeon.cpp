@@ -8,6 +8,21 @@
 Dungeon::Dungeon(float winW, float winH) {
     currentRoomIndex = 0;
     iFrameCooldown = 0.5f;
+
+    if (!doorTextureVert.loadFromFile("textures/doors/vertical_door.png")) {}
+    if (!doorTextureHoriz.loadFromFile("textures/doors/horisontal_door.png")) {}
+
+    for (int i = 0; i < 4; i++) {
+        doorCurrentFrame[i] = 0;
+
+        if (i == 0 || i == 2) {
+            doorSprites[i].setTexture(doorTextureHoriz);
+        }
+        else {
+            doorSprites[i].setTexture(doorTextureVert);
+        }
+    }
+
     if (!tileset.loadFromFile("textures//2D Pixel Dungeon Asset Pack//character and tileset//Dungeon_Tileset.png")) {
         std::cout << "Tileset texture not found!" << std::endl;
 	}
@@ -187,8 +202,27 @@ void Dungeon::update(Player& player, float winW, float winH) {
         for (int i = 0; i < 4; i++) {
 
             if (activeRoom->nextRoomIndex[i] != -1) {
-                if (activeRoom->isCleared) doorTriggers[i].setFillColor(sf::Color::Green);
-                else doorTriggers[i].setFillColor(sf::Color::Red);
+
+                int maxFrames = (i == 0 || i == 2) ? 8 : 5;
+                int frameWidth = (i == 0 || i == 2) ? doorTextureHoriz.getSize().x / maxFrames : doorTextureVert.getSize().x / maxFrames;
+                int frameHeight = (i == 0 || i == 2) ? doorTextureHoriz.getSize().y : doorTextureVert.getSize().y;
+                doorSprites[i].setScale(2.f, 2.f);
+
+                if (activeRoom->isCleared) {
+                    if (doorCurrentFrame[i] < maxFrames - 1) {
+                        if (doorAnimTimers[i].getElapsedTime().asSeconds() > 0.1f) { // 0.1f - швидкість анімації
+                            doorCurrentFrame[i]++;
+                            doorAnimTimers[i].restart();
+                        }
+                    }
+                }
+                else {
+                    doorCurrentFrame[i] = 0;
+                }
+
+                doorSprites[i].setTextureRect(sf::IntRect(doorCurrentFrame[i] * frameWidth, 0, frameWidth, frameHeight));
+                doorSprites[i].setOrigin(frameWidth / 2.f, frameHeight / 2.f);
+                doorSprites[i].setPosition(doorTriggers[i].getPosition());
 
                 if (player.hitbox.getGlobalBounds().intersects(doorTriggers[i].getGlobalBounds())) {
                     if (activeRoom->isCleared) {
@@ -225,6 +259,10 @@ void Dungeon::update(Player& player, float winW, float winH) {
                         }
 
                         player.hitbox.setPosition(spawnPos);
+
+                        for (int j = 0; j < 4; j++) {
+                            doorCurrentFrame[j] = 0;
+                        }
 
                         return;
                     }
@@ -346,7 +384,7 @@ void Dungeon::draw(sf::RenderWindow& window) {
 
     for (int i = 0; i < 4; i++) {
         if (activeRoom->nextRoomIndex[i] != -1) {
-            window.draw(doorTriggers[i]);
+            window.draw(doorSprites[i]);
         }
     }
 
@@ -354,6 +392,11 @@ void Dungeon::draw(sf::RenderWindow& window) {
         if (enemy.isEnemyAlive) {
             //enemy.sprite.setTexture(enemy.texture);
             window.draw(enemy.sprite);
+
+            if (enemy.hp > 0 && enemy.hp < enemy.maxHp) {
+                window.draw(enemy.hpBarBack);
+                window.draw(enemy.hpBarFront);
+            }
 
             for (auto& bullet : enemy.bullets) {
                 if (Bullet::isTextureLoaded) {

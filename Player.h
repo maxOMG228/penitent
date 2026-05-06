@@ -15,6 +15,8 @@ public:
 
 	sf::RectangleShape hitbox;
 	sf::RectangleShape swordHitbox;
+	sf::Texture attackTexture;
+	sf::Sprite attackSprite;
 
 	sf::Texture texture;
 	sf::Sprite sprite;

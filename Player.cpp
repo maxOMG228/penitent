@@ -4,6 +4,16 @@
 const float PI = 3.14159265f;
 
 Player::Player(float startX, float startY) {
+	if (attackTexture.loadFromFile("textures/attack.png")) {
+		attackSprite.setTexture(attackTexture);
+
+		int frameW = attackTexture.getSize().x / 4;
+		int frameH = attackTexture.getSize().y;
+		attackSprite.setOrigin(frameW, frameH / 2.f);
+
+		attackSprite.setScale(2.f, 2.f);
+	}
+
 	hp = 100;
 	keys = 0;
 	maxHp = 100;
@@ -38,13 +48,13 @@ Player::Player(float startX, float startY) {
 	hitbox.setFillColor(sf::Color::Transparent);
 	hitbox.setOutlineColor(sf::Color::Green);
 
-	swordHitbox.setSize(sf::Vector2f(20.f, 40.f));
+	swordHitbox.setSize(sf::Vector2f(20.f, 80.f));
 	swordHitbox.setOrigin(swordHitbox.getSize().x / 2.f, swordHitbox.getSize().y);
 	swordHitbox.setFillColor(sf::Color::Red);
 	swordHitbox.setPosition(-100.f, -100.f); // Start off-screen
 
 	isAttacking = false;
-	attackDuration = 0.2f;
+	attackDuration = 0.5f;
 	attackCooldown = 0.5f;
 	currentAttackAngle = 0.f;
 
@@ -137,16 +147,40 @@ void Player::update(sf::RenderWindow& window, sf::View& view) {
 	}
 
 	if (isAttacking) {
-		float offset = 60.f;
+		float offset = 30.f;
 		float swordX = playerPos.x + std::cos(currentAttackAngle) * offset;
 		float swordY = playerPos.y + std::sin(currentAttackAngle) * offset;
 
 		swordHitbox.setPosition(swordX, swordY);
 		swordHitbox.setRotation((currentAttackAngle * 180.f / PI) + 90.f);
+		attackSprite.setPosition(swordX, swordY);
+		attackSprite.setRotation((currentAttackAngle * 180.f / PI) + 180.f);
 
-		if (attackTimer.getElapsedTime().asSeconds() >= attackDuration) {
+		float timePassed = attackTimer.getElapsedTime().asSeconds();
+		float progress = timePassed / attackDuration;
+
+		int maxFrames = 4;
+		int animFrame = static_cast<int>(progress * maxFrames);
+		if (animFrame >= maxFrames) animFrame = maxFrames - 1;
+
+		int frameW = attackTexture.getSize().x / 4;
+		int frameH = attackTexture.getSize().y;
+		attackSprite.setTextureRect(sf::IntRect(animFrame * frameW, 0, frameW, frameH));
+
+		int charAttackFrames = 10;
+		int charAnimFrame = static_cast<int>(progress * charAttackFrames);
+		if (charAnimFrame >= charAttackFrames) charAnimFrame = charAttackFrames - 1;
+
+		int attackRow = 3;
+
+		int left = charAnimFrame * frameWidth;
+		int top = attackRow * frameHeight;
+
+		sprite.setTextureRect(sf::IntRect(left, top, frameWidth, frameHeight));
+
+		if (timePassed >= attackDuration) {
 			isAttacking = false;
-			swordHitbox.setPosition(-100.f, -100.f); // Move sword hitbox off-screen
+			swordHitbox.setPosition(-100.f, -100.f);
 		}
 	}
 
@@ -162,6 +196,7 @@ void Player::draw(sf::RenderWindow& window) {
 	window.draw(sprite);
 	// window.draw(hitbox);
 	if (isAttacking) {
-		window.draw(swordHitbox);
+		//window.draw(swordHitbox);
+		window.draw(attackSprite);
 	}
 }

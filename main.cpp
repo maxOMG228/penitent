@@ -41,6 +41,22 @@ int main()
     gameOverText.setPosition(windowWidth / 2.0f, windowHeight / 2.0f);
 
     bool isDead = false;
+    bool isPaused = false;
+
+    // PAUSE
+    Text pauseText;
+    pauseText.setFont(font);
+    pauseText.setString("PAUSED\nPress ESC to Resume");
+    pauseText.setCharacterSize(64);
+    pauseText.setFillColor(Color::White);
+    pauseText.setStyle(Text::Bold);
+
+    FloatRect pauseRect = pauseText.getLocalBounds();
+    pauseText.setOrigin(pauseRect.left + pauseRect.width / 2.0f, pauseRect.top + pauseRect.height / 2.0f);
+    pauseText.setPosition(windowWidth / 2.0f, windowHeight / 2.0f);
+
+    RectangleShape pauseOverlay(Vector2f(windowWidth, windowHeight));
+    pauseOverlay.setFillColor(Color(0, 0, 0, 150));
 
     // --- PLAYER ---
     Player player(400.f, 300.f);
@@ -81,9 +97,15 @@ int main()
                 player.hitbox.setFillColor(Color(255, 0, 0, 100));
 
                 dungeon.currentRoomIndex = 0;
-				dungeon.generateRandomLevel(10);
+                dungeon.generateRandomLevel(10);
 
-                
+
+            }
+            // pause trigger
+            if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape) {
+                if (!isDead) {
+                    isPaused = !isPaused;
+                }
             }
         }
 
@@ -91,7 +113,7 @@ int main()
 
         if (player.hp <= 0) isDead = true;
 
-        if (!isDead)
+        if (!isDead && !isPaused)
         {
 			// player update
             player.update(window, camera);
@@ -164,6 +186,12 @@ int main()
         if (isDead) {
             window.draw(gameOverText);
             player.hitbox.setFillColor(Color(100, 100, 100)); // Gray color
+        }
+
+        if (isPaused) {
+            window.setView(window.getDefaultView());
+            window.draw(pauseOverlay);
+            window.draw(pauseText);
         }
 
         window.display();
