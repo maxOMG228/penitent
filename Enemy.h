@@ -3,6 +3,21 @@
 #include <vector>
 #include <iostream>
 
+
+enum BossState {
+	BossChase,
+	BossBasicAttack,
+	BossOrbiting,
+	BossLunging,
+	BossStunned,
+	BossEvasiveDash
+};
+
+struct Afterimage {
+	sf::Sprite sprite;
+	float alpha;
+};
+
 struct Bullet {
 	sf::RectangleShape shape;
 	sf::Sprite sprite;
@@ -52,11 +67,29 @@ enum EnemyType {
 	BaseEnemy,
 	ArcherEnemy,
 	MelleSkeleton,
+	BossEnemy,
 };
 
 class Enemy
 {
 public:
+	BossState bossState;
+	sf::Texture bossAttackTexture;
+	sf::Clock stateTimer;
+	sf::Clock bossIdleTimer;
+	sf::Clock afterimageTimer;
+
+	float orbitAngle;
+	float orbitTargetAngle;
+	int lungePhase;
+
+	bool hasAttackedSinceLastDodge;
+	int bossHitsTaken;
+	int bossDamageTaken;
+	int stunHitsTaken;
+
+	std::vector<Afterimage> afterimages;
+	sf::RectangleShape bossWeaponHitbox;
 	sf::RectangleShape Shape;
 	sf::Texture texture;
 	sf::Sprite sprite;

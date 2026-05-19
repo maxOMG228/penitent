@@ -9,7 +9,7 @@ enum RoomType {
 	Normal,
 	Safe,
 	Treasure,
-	Boss,
+	BossRoom,
 };
 
 class Room
@@ -21,9 +21,11 @@ public:
 	std::vector<Chest*> chests;
 
 	bool isCleared;
+	bool isRevealed = false;
 	bool rewardSpawned;
 	int nextRoomIndex[4];
 	RoomType type;
+	int depth;
 
 	int gridX;
 	int gridY;

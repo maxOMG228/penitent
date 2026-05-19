@@ -47,6 +47,7 @@ Player::Player(float startX, float startY) {
 	hitbox.setPosition(startX, startY);
 	hitbox.setFillColor(sf::Color::Transparent);
 	hitbox.setOutlineColor(sf::Color::Green);
+	hitbox.setOutlineThickness(2.f);
 
 	swordHitbox.setSize(sf::Vector2f(20.f, 80.f));
 	swordHitbox.setOrigin(swordHitbox.getSize().x / 2.f, swordHitbox.getSize().y);
@@ -194,7 +195,7 @@ void Player::update(sf::RenderWindow& window, sf::View& view) {
 
 void Player::draw(sf::RenderWindow& window) {
 	window.draw(sprite);
-	// window.draw(hitbox);
+	//window.draw(hitbox);
 	if (isAttacking) {
 		//window.draw(swordHitbox);
 		window.draw(attackSprite);

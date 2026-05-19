@@ -11,6 +11,8 @@ Enemy::Enemy(float x, float y, int room, EnemyType t) {
 	type = t;
 	isEnemyAlive = true;
 	Shape.setPosition(x, y);
+	Shape.setOutlineColor(sf::Color::Yellow);   // Жовта рамка
+	Shape.setOutlineThickness(2.f);
 	isJumping = false;
 	jumpTimer.restart();
 	shootTimer.restart();
@@ -33,11 +35,13 @@ Enemy::Enemy(float x, float y, int room, EnemyType t) {
 
 	if (type == MelleSkeleton) {
 		if (!texture.loadFromFile("textures/Enemy_Animations_Set/enemies-skeleton1_idle.png")) {
+			std::cout << "Error loading texture" << std::endl;
 		}
 		if (!attackTexture.loadFromFile("textures/Enemy_Animations_Set/enemies-skeleton1_attack.png")) {
 			std::cout << "Error loading attack texture" << std::endl;
 		}
 		if (!walkTexture.loadFromFile("textures/Enemy_Animations_Set/enemies-skeleton1_movement.png")) {
+			std::cout << "Error loading walk texture" << std::endl;
 		}
 		frameWidth = 23;
 		frameHeight = 29;
@@ -51,7 +55,7 @@ Enemy::Enemy(float x, float y, int room, EnemyType t) {
 		hp = 20;
 		maxHp = 20;
 		damage = 15;
-		attackRange = 40.f;
+		attackRange = 75.f;
 		attackCooldown = 1.5f;
 		windUpDuration = 0.6f;
 
@@ -60,42 +64,82 @@ Enemy::Enemy(float x, float y, int room, EnemyType t) {
 		sprite.setScale(4.f, 4.f);
 	}
 
-		if (type == BaseEnemy) {
-			if (!texture.loadFromFile("textures/enemyes/Base_Slime_anim.png")) {
+	if (type == BaseEnemy) {
+		if (!texture.loadFromFile("textures/enemyes/Base_Slime_anim.png")) {
 
-			}
-			sprite.setTexture(texture);
-			frameWidth = 23;
-			frameHeight = 29;
-			hp = 10;
-			maxHp = 10;
-			shootInterval = 0.f;
-		}
-		else if (type == ArcherEnemy) {
-			if (!texture.loadFromFile("textures/enemyes/Skeleton_Archer.png")) {
-			}
-			hp = 5;
-			maxHp = 5;
-			shootInterval = 2.f;
-			sprite.setTexture(texture);
-			frameWidth = texture.getSize().x;
-			frameHeight = texture.getSize().y;
-
-			sprite.setScale(2.5f, 2.5f);
 		}
 		sprite.setTexture(texture);
-		sprite.setTextureRect(sf::IntRect(0, 0, frameWidth, frameHeight));
-
-		sprite.setOrigin(frameWidth / 2.f, frameHeight / 2.f);
-		sprite.setPosition(x, y);
-		sprite.setScale(2.f, 2.f);
-
-		Shape.setPosition(x, y);
-		Shape.setSize(sf::Vector2f(40.f, 50.f));
-		Shape.setOrigin(20.f, 25.f);
-
-		Shape.setFillColor(sf::Color::Transparent);
+		frameWidth = 23;
+		frameHeight = 29;
+		hp = 10;
+		maxHp = 10;
+		shootInterval = 0.f;
 	}
+
+	else if (type == ArcherEnemy) {
+		if (!texture.loadFromFile("textures/enemyes/Skeleton_Archer.png")) {
+		}
+		hp = 5;
+		maxHp = 5;
+		shootInterval = 2.f;
+		sprite.setTexture(texture);
+		frameWidth = texture.getSize().x;
+		frameHeight = texture.getSize().y;
+
+		sprite.setScale(2.5f, 2.5f);
+	}
+
+	else if (type == BossEnemy) {
+		if (!texture.loadFromFile("textures/boss_textures/idle.png")) {
+			std::cout << "Error loading boss texture\n";
+		}
+		if (!bossAttackTexture.loadFromFile("textures/boss_textures/attacking.png")) {
+			std::cout << "Error loading boss attack texture\n";
+		}
+		sprite.setTexture(texture);
+		frameWidth = texture.getSize().x / 4;
+		frameHeight = texture.getSize().y / 2;
+
+		hp = 50;
+		maxHp = 50;
+		damage = 25;
+
+		sprite.setTextureRect(sf::IntRect(0, 0, frameWidth, frameHeight));
+		sprite.setOrigin(frameWidth / 2.f, frameHeight / 2.f);
+		sprite.setScale(4.f, 4.f);
+
+		Shape.setSize(sf::Vector2f(60.f, 100.f));
+		Shape.setOrigin(30.f, 50.f);
+
+		bossWeaponHitbox.setSize(sf::Vector2f(100.f, 150.f));
+		bossWeaponHitbox.setOrigin(50.f, 75.f);
+		bossWeaponHitbox.setFillColor(sf::Color(255, 0, 0, 100));
+		bossWeaponHitbox.setOutlineThickness(2.f);
+		bossWeaponHitbox.setOutlineColor(sf::Color::Red);
+		bossWeaponHitbox.setPosition(-1000.f, -1000.f);
+
+		bossState = BossChase;
+		hasAttackedSinceLastDodge = false;
+		bossHitsTaken = 0;
+		bossDamageTaken = 0;
+		stunHitsTaken = 0;
+		lungePhase = 1;
+		bossIdleTimer.restart();
+	}
+
+	sprite.setTexture(texture);
+	sprite.setTextureRect(sf::IntRect(0, 0, frameWidth, frameHeight));
+
+	sprite.setOrigin(frameWidth / 2.f, frameHeight / 2.f);
+	sprite.setPosition(x, y);
+	sprite.setScale(2.f, 2.f);
+
+	Shape.setPosition(x, y);
+	Shape.setSize(sf::Vector2f(40.f, 50.f));
+	Shape.setOrigin(20.f, 25.f);
+
+	Shape.setFillColor(sf::Color::Transparent);
+}
 
 
 void Enemy::update(sf::Vector2f playerPos, float roomW, float roomH) {
@@ -262,6 +306,240 @@ void Enemy::update(sf::Vector2f playerPos, float roomW, float roomH) {
 			}
 		}
 	}
+	else if (type == BossEnemy) {
+		float speed = 2.0f;
+		float dashSpeed = 25.0f;
+		float orbitDistance = 250.f;
+
+		if (bossState != BossStunned) {
+			sprite.setColor(sf::Color::White);
+		}
+		else {
+			sprite.setColor(sf::Color(100, 100, 100));
+		}
+
+		for (int i = 0; i < afterimages.size(); i++) {
+			afterimages[i].alpha -= 10.f;
+			if (afterimages[i].alpha <= 0) {
+				afterimages.erase(afterimages.begin() + i);
+				i--;
+			}
+			else {
+				afterimages[i].sprite.setColor(sf::Color(150, 0, 255, (sf::Uint8)afterimages[i].alpha));
+			}
+		}
+
+		if (bossState == BossOrbiting || bossState == BossLunging) {
+			bossHitsTaken = 0;
+			bossDamageTaken = 0;
+		}
+
+		bool insideDodgeCooldown = windUpTimer.getElapsedTime().asSeconds() >= 7.0f;
+		if ((hasAttackedSinceLastDodge || insideDodgeCooldown) && (bossDamageTaken >= 3 || bossHitsTaken >= 2) && bossState != BossEvasiveDash) {
+			bossState = BossEvasiveDash;
+			stateTimer.restart();
+			windUpTimer.restart();
+			bossHitsTaken = 0;
+			bossDamageTaken = 0;
+			hasAttackedSinceLastDodge = false;
+			bossWeaponHitbox.setPosition(-1000.f, -1000.f);
+			if (dist > 0) {
+				jumpDirection = sf::Vector2f(-dx / dist, -dy / dist);
+			}
+		}
+
+		if (bossState == BossChase) {
+			Shape.move((dx / dist) * speed, (dy / dist) * speed);
+
+			float time = attackTimer.getElapsedTime().asSeconds();
+			int currentFrame = (int)(time / 0.15f) % 8;
+			sprite.setTexture(texture);
+			sprite.setTextureRect(sf::IntRect((currentFrame % 4) * frameWidth, (currentFrame / 4) * frameHeight, frameWidth, frameHeight));
+
+			if (dist < 80.f && bossIdleTimer.getElapsedTime().asSeconds() > 0.5f) {
+				bossState = BossBasicAttack;
+				stateTimer.restart();
+			}
+
+			else if (dist > 100.f && bossIdleTimer.getElapsedTime().asSeconds() > 0.45f && shootTimer.getElapsedTime().asSeconds() > 10.0f) {
+				int randomChance = rand() % 120;
+				if (randomChance < 2) {
+					bossState = BossOrbiting;
+					stateTimer.restart();
+					shootTimer.restart();
+					orbitAngle = std::atan2(Shape.getPosition().y - playerPos.y, Shape.getPosition().x - playerPos.x);
+					lungePhase = 1;
+				}
+			}
+		}
+
+		else if (bossState == BossBasicAttack) {
+			sprite.setTexture(bossAttackTexture);
+			int attackFrameW = bossAttackTexture.getSize().x / 6;
+			int attackFrameH = bossAttackTexture.getSize().y / 3;
+
+			float timePassed = stateTimer.getElapsedTime().asSeconds();
+			float windUpDuration = 0.5f;
+			float attackDuration = 0.3f;
+
+			if (timePassed < windUpDuration) {
+				int currentFrame = 1;
+				sprite.setTextureRect(sf::IntRect(currentFrame * attackFrameW, 0, attackFrameW, attackFrameH));
+				bossWeaponHitbox.setPosition(-1000.f, -1000.f);
+			}
+			else {
+				float activeAttackTime = timePassed - windUpDuration;
+
+				int currentFrame = 2 + (int)((activeAttackTime / attackDuration) * 4);
+				if (currentFrame > 5) currentFrame = 5;
+
+				sprite.setTextureRect(sf::IntRect(currentFrame * attackFrameW, 0, attackFrameW, attackFrameH));
+
+				float hitOffsetX = (sprite.getScale().x > 0) ? 80.f : -80.f;
+				bossWeaponHitbox.setPosition(Shape.getPosition().x + hitOffsetX, Shape.getPosition().y);
+
+				if (activeAttackTime >= attackDuration) {
+					hasAttackedSinceLastDodge = true;
+					bossState = BossChase;
+					bossIdleTimer.restart();
+					bossWeaponHitbox.setPosition(-1000.f, -1000.f);
+				}
+			}
+		}
+
+		else if (bossState == BossOrbiting) {
+			sprite.setTexture(texture);
+			orbitAngle += 0.06f;
+
+			float targetX = playerPos.x + std::cos(orbitAngle) * orbitDistance;
+			float targetY = playerPos.y + std::sin(orbitAngle) * orbitDistance;
+
+			float ox = targetX - myPos.x;
+			float oy = targetY - myPos.y;
+			float odist = std::sqrt(ox * ox + oy * oy);
+
+			float orbitCatchUpSpeed = speed * 10.0f;
+			if (odist > orbitCatchUpSpeed) {
+				Shape.move((ox / odist) * orbitCatchUpSpeed, (oy / odist) * orbitCatchUpSpeed);
+			}
+			else {
+				Shape.setPosition(targetX, targetY);
+			}
+
+			bool finishOrbit = false;
+			if (lungePhase == 1 && stateTimer.getElapsedTime().asSeconds() > 1.5f) finishOrbit = true;
+			if (lungePhase == 2 && std::abs(orbitAngle - orbitTargetAngle) < 0.1f) finishOrbit = true;
+			if (lungePhase == 2 && stateTimer.getElapsedTime().asSeconds() > 2.0f) finishOrbit = true;
+
+			if (finishOrbit) {
+				bossState = BossLunging;
+				stateTimer.restart();
+			}
+		}
+		else if (bossState == BossLunging) {
+			sprite.setTexture(bossAttackTexture);
+			int attackFrameW = bossAttackTexture.getSize().x / 6;
+			int attackFrameH = bossAttackTexture.getSize().y / 3;
+
+			float timePassed = stateTimer.getElapsedTime().asSeconds();
+
+			// Якщо це перша атака, 0.5 секунди замаху
+			float specialWindUp = (lungePhase == 1) ? 0.5f : 0.5f;
+			float dashDuration = 0.33f;
+
+			if (timePassed < specialWindUp) {
+				int currentFrame = 1;
+				sprite.setTextureRect(sf::IntRect(currentFrame * attackFrameW, 0, attackFrameW, attackFrameH));
+
+				float lx = playerPos.x - Shape.getPosition().x;
+				float ly = playerPos.y - Shape.getPosition().y;
+				float ldist = std::sqrt(lx * lx + ly * ly);
+				if (ldist > 0) {
+					jumpDirection = sf::Vector2f(lx / ldist, ly / ldist);
+				}
+			}
+			else {
+				float activeDashTime = timePassed - specialWindUp;
+
+				sprite.setTextureRect(sf::IntRect(5 * attackFrameW, 0, attackFrameW, attackFrameH));
+				Shape.move(jumpDirection * dashSpeed);
+
+				if (afterimageTimer.getElapsedTime().asSeconds() > 0.05f) {
+					Afterimage shadow;
+					shadow.sprite = sprite;
+					shadow.alpha = 255.f;
+					afterimages.push_back(shadow);
+					afterimageTimer.restart();
+				}
+
+				if (activeDashTime > dashDuration) {
+					hasAttackedSinceLastDodge = true;
+
+					if (hp <= maxHp / 2 && lungePhase == 1) {
+						lungePhase = 2;
+						bossState = BossOrbiting;
+						stateTimer.restart();
+						orbitAngle = std::atan2(Shape.getPosition().y - playerPos.y, Shape.getPosition().x - playerPos.x);
+						float randomAddAngle = (90.f + (rand() % 180)) * 3.1415f / 180.f;
+						orbitTargetAngle = orbitAngle + randomAddAngle;
+					}
+					else {
+						bossState = BossStunned;
+						stunHitsTaken = 0;
+						stateTimer.restart();
+					}
+				}
+			}
+		}
+				
+		else if (bossState == BossStunned) {
+
+			if (stateTimer.getElapsedTime().asSeconds() > 3.0f || stunHitsTaken >= 2) {
+				bossState = BossChase;
+				sprite.setColor(sf::Color::White);
+				bossIdleTimer.restart();
+			}
+		}
+		else if (bossState == BossEvasiveDash) {
+			sprite.setTexture(texture);
+
+			float time = attackTimer.getElapsedTime().asSeconds();
+			int currentFrame = (int)(time / 0.05f) % 8;
+			sprite.setTextureRect(sf::IntRect((currentFrame % 4) * frameWidth, (currentFrame / 4) * frameHeight, frameWidth, frameHeight));
+
+			Shape.move(jumpDirection * dashSpeed);
+
+			if (afterimageTimer.getElapsedTime().asSeconds() > 0.05f) {
+				Afterimage shadow;
+				shadow.sprite = sprite;
+				shadow.alpha = 255.f;
+				afterimages.push_back(shadow);
+				afterimageTimer.restart();
+			}
+
+			if (stateTimer.getElapsedTime().asSeconds() > 0.25f) {
+				bossState = BossChase;
+				bossIdleTimer.restart();
+			}
+		}
+
+		if (bossState != BossBasicAttack && bossState != BossLunging) {
+			if (dx < 0) sprite.setScale(-4.f, 4.f);
+			else sprite.setScale(4.f, 4.f);
+		}
+		else if (bossState == BossLunging) {
+			float specialWindUp = (lungePhase == 1) ? 0.5f : 0.5f;
+			if (stateTimer.getElapsedTime().asSeconds() < specialWindUp) {
+				if (dx < 0) sprite.setScale(-4.f, 4.f);
+				else sprite.setScale(4.f, 4.f);
+			}
+			else {
+				if (jumpDirection.x < 0) sprite.setScale(-4.f, 4.f);
+				else sprite.setScale(4.f, 4.f);
+			}
+		}
+	}
+	
 
 
 
@@ -274,6 +552,7 @@ void Enemy::update(sf::Vector2f playerPos, float roomW, float roomH) {
 	if (pos.y > roomH - 20.f) pos.y = roomH - 20.f;
 
 	sprite.setPosition(pos);
+	Shape.setPosition(pos);
 
 	float yOffset = 40.f;
 	hpBarBack.setPosition(pos.x, pos.y - yOffset);

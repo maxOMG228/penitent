@@ -63,10 +63,11 @@ void Dungeon::generateRandomLevel(int roomCount) {
     for (auto r : rooms) delete r;
     rooms.clear();
 
-	Room* startRoom = new Room();
-	startRoom->isCleared = true;
+    Room* startRoom = new Room();
+    startRoom->isCleared = true;
     startRoom->gridX = 0;
     startRoom->gridY = 0;
+    startRoom->depth = 0;
 
     startRoom->generateBackground(tileset, 800, 600);
     std::map<std::pair<int, int>, int> grid;
@@ -104,18 +105,20 @@ void Dungeon::generateRandomLevel(int roomCount) {
         if (grid.find({ nextX, nextY }) == grid.end()) {
             Room* newRoom = new Room();
 
+            newRoom->depth = rooms[currentRoomID]->depth + 1;
+
             int roomTypeChance = rand() % 100;
 
             if (roomTypeChance < 20) {
-				newRoom->type = Treasure;
-				newRoom->isCleared = true;
+                newRoom->type = Treasure;
+                newRoom->isCleared = true;
                 newRoom->generateBackground(tileset, 800, 600);
 
                 Chest* chest = new Chest(400.f, 300.f);
                 chest->setLoot(getRandomArtifact(400.f, 300.f));
                 newRoom->chests.push_back(chest);
             }
-            else { 
+            else {
                 newRoom->type = Normal;
 
                 float randomW = 1000.f + (rand() % 11) * 100.f;
@@ -125,7 +128,7 @@ void Dungeon::generateRandomLevel(int roomCount) {
 
                 int enemyCount = rand() % 3 + 1;
                 for (int e = 0; e < enemyCount; e++) {
-                    int typeRoll =  rand() % 3;
+                    int typeRoll = rand() % 3;
                     EnemyType randomType;
 
                     if (typeRoll == 0) randomType = BaseEnemy;
@@ -147,10 +150,34 @@ void Dungeon::generateRandomLevel(int roomCount) {
             roomsCreated++;
 
             rooms[currentRoomID]->nextRoomIndex[dir] = newID;
-                
+
             int oppositeDir = (dir + 2) % 4;
             rooms[newID]->nextRoomIndex[oppositeDir] = currentRoomID;
         }
+    }
+    int maxDepth = -1;
+    int bossRoomIndex = -1;
+
+    for (int i = 0; i < rooms.size(); i++) {
+        if (i == 0) continue;
+
+        if (rooms[i]->depth > maxDepth) {
+            maxDepth = rooms[i]->depth;
+            bossRoomIndex = i;
+        }
+    }
+
+    if (bossRoomIndex != -1) {
+        rooms[bossRoomIndex]->type = BossRoom;
+        float bossW = 1200.f;
+        float bossH = 1200.f;
+        rooms[bossRoomIndex]->generateBackground(tileset, bossW, bossH);
+
+        rooms[bossRoomIndex]->enemies.clear();
+        for (auto c : rooms[bossRoomIndex]->chests) delete c;
+        rooms[bossRoomIndex]->chests.clear();
+
+        rooms[bossRoomIndex]->addEnemy(bossW / 2.f, bossH / 2.f, BossEnemy);
     }
 }
 
@@ -160,14 +187,23 @@ void Dungeon::update(Player& player, float winW, float winH) {
     Room* activeRoom = rooms[currentRoomIndex];
     activeRoom->updateStatus();
 
-    if (activeRoom->isCleared && !activeRoom->rewardSpawned && activeRoom->type != Treasure) {
-        int roll = rand() % 100;
-        if (roll < 100) {
-            float spawnX = activeRoom->roomWidth / 2.f;
-            float spawnY = activeRoom->roomHeight / 2.f;
+    activeRoom->isRevealed = true;
+    for (int i = 0; i < 4; i++) {
+        if (activeRoom->nextRoomIndex[i] != -1) {
+            rooms[activeRoom->nextRoomIndex[i]]->isRevealed = true;
+        }
+    }
 
-            activeRoom->artifacts.push_back(new Key(spawnX, spawnY));
-            std::cout << "Loot spawned: Key!" << std::endl;
+    if (activeRoom->isCleared && !activeRoom->rewardSpawned && activeRoom->type != Treasure) {
+        if (currentRoomIndex != 0 && activeRoom->type != BossRoom) {
+            int roll = rand() % 100;
+            if (roll < 100) {
+                float spawnX = activeRoom->roomWidth / 2.f;
+                float spawnY = activeRoom->roomHeight / 2.f;
+
+                activeRoom->artifacts.push_back(new Key(spawnX, spawnY));
+                std::cout << "Loot spawned: Key!" << std::endl;
+            }
         }
         activeRoom->rewardSpawned = true;
     }
@@ -295,6 +331,48 @@ void Dungeon::update(Player& player, float winW, float winH) {
         if (enemy.isEnemyAlive) {
             enemy.update(player.hitbox.getPosition(), currentRoomW, currentRoomH);
 
+
+            for (size_t j = i + 1; j < activeRoom->enemies.size(); j++) {
+                Enemy& otherEnemy = activeRoom->enemies[j];
+                if (otherEnemy.isEnemyAlive) {
+                    sf::FloatRect overlap;
+                    if (enemy.Shape.getGlobalBounds().intersects(otherEnemy.Shape.getGlobalBounds(), overlap)) {
+                        sf::Vector2f ePos = enemy.Shape.getPosition();
+                        sf::Vector2f oPos = otherEnemy.Shape.getPosition();
+
+                        if (overlap.width < overlap.height) {
+                            float push = overlap.width / 2.f;
+                            if (ePos.x < oPos.x) { enemy.Shape.move(-push, 0.f); otherEnemy.Shape.move(push, 0.f); }
+                            else { enemy.Shape.move(push, 0.f); otherEnemy.Shape.move(-push, 0.f); }
+                        }
+                        else {
+                            float push = overlap.height / 2.f;
+                            if (ePos.y < oPos.y) { enemy.Shape.move(0.f, -push); otherEnemy.Shape.move(0.f, push); }
+                            else { enemy.Shape.move(0.f, push); otherEnemy.Shape.move(0.f, -push); }
+                        }
+                    }
+                }
+            }
+
+            if (enemy.type != BossEnemy && enemy.type != BaseEnemy) {
+                sf::FloatRect pOverlap;
+                if (player.hitbox.getGlobalBounds().intersects(enemy.Shape.getGlobalBounds(), pOverlap)) {
+                    if (!player.isRolling) {
+                        sf::Vector2f pPos = player.hitbox.getPosition();
+                        sf::Vector2f ePos = enemy.Shape.getPosition();
+
+                        if (pOverlap.width < pOverlap.height) {
+                            if (pPos.x < ePos.x) player.hitbox.move(-pOverlap.width, 0.f);
+                            else player.hitbox.move(pOverlap.width, 0.f);
+                        }
+                        else {
+                            if (pPos.y < ePos.y) player.hitbox.move(0.f, -pOverlap.height);
+                            else player.hitbox.move(0.f, pOverlap.height);
+                        }
+                    }
+                }
+            }
+
             // ¬орог атакуЇ гравц€
             if (enemy.type == BaseEnemy) {
             if (player.hitbox.getGlobalBounds().intersects(enemy.Shape.getGlobalBounds())) {
@@ -309,17 +387,53 @@ void Dungeon::update(Player& player, float winW, float winH) {
                 float dy = player.hitbox.getPosition().y - enemy.Shape.getPosition().y;
                 float dist = std::sqrt(dx * dx + dy * dy);
 
-                    if (enemy.readyToHit) {
+                if (enemy.readyToHit) {
 
-                        float dx = player.hitbox.getPosition().x - enemy.Shape.getPosition().x;
-                        float dy = player.hitbox.getPosition().y - enemy.Shape.getPosition().y;
-                        float dist = std::sqrt(dx * dx + dy * dy);
+                    float dx = player.hitbox.getPosition().x - enemy.Shape.getPosition().x;
+                    float dy = player.hitbox.getPosition().y - enemy.Shape.getPosition().y;
 
-                        if (dist <= enemy.attackRange + 20.f) {
-                            if (!player.isRolling) {
-                                player.hp -= enemy.damage;
+                    if (std::abs(dx) <= enemy.attackRange + 20.f && std::abs(dy) <= enemy.attackRange + 60.f) {
+                        if (!player.isRolling) {
+                            player.hp -= enemy.damage;
                         }
                     }
+                }
+            }
+            else if (enemy.type == BossEnemy) {
+                sf::FloatRect overlap;
+                if (player.hitbox.getGlobalBounds().intersects(enemy.Shape.getGlobalBounds(), overlap)) {
+                    if (!player.isRolling && enemy.bossState != BossLunging) {
+                        sf::Vector2f pPos = player.hitbox.getPosition();
+                        sf::Vector2f bPos = enemy.Shape.getPosition();
+
+                        if (overlap.width < overlap.height) {
+                            if (pPos.x < bPos.x) player.hitbox.move(-overlap.width, 0.f);
+                            else player.hitbox.move(overlap.width, 0.f);
+                        }
+                        else {
+                            if (pPos.y < bPos.y) player.hitbox.move(0.f, -overlap.height);
+                            else player.hitbox.move(0.f, overlap.height);
+                        }
+                    }
+                }
+
+                bool playerHit = false;
+
+                if (enemy.bossState == BossBasicAttack) {
+                    if (player.hitbox.getGlobalBounds().intersects(enemy.bossWeaponHitbox.getGlobalBounds())) {
+                        playerHit = true;
+                    }
+                }
+
+                else if (enemy.bossState == BossLunging) {
+                    if (player.hitbox.getGlobalBounds().intersects(enemy.Shape.getGlobalBounds())) {
+                        playerHit = true;
+                    }
+                }
+
+                if (playerHit && damageClock.getElapsedTime().asSeconds() >= iFrameCooldown && !player.isRolling) {
+                    player.hp -= enemy.damage;
+                    damageClock.restart();
                 }
             }
 
@@ -353,6 +467,14 @@ void Dungeon::update(Player& player, float winW, float winH) {
 
                 if (!alreadyHit) {
                     enemy.hp -= player.damage;
+
+                    if (enemy.type == BossEnemy) {
+                        enemy.bossDamageTaken += player.damage;
+                        enemy.bossHitsTaken += 1;
+                        if (enemy.bossState == BossStunned) {
+                            enemy.stunHitsTaken += 1;
+                        }
+                    }
 
                     float knock = 20.f;
                     float angle = player.currentAttackAngle;
@@ -391,12 +513,22 @@ void Dungeon::draw(sf::RenderWindow& window) {
     for (auto& enemy : activeRoom->enemies) {
         if (enemy.isEnemyAlive) {
             //enemy.sprite.setTexture(enemy.texture);
+            //window.draw(enemy.Shape);
+            if (enemy.type == BossEnemy) {
+                for (auto& shadow : enemy.afterimages) {
+                    window.draw(shadow.sprite);
+                }
+               // if (enemy.bossState == BossBasicAttack) {
+                    //window.draw(enemy.bossWeaponHitbox);
+                //}
+            }
             window.draw(enemy.sprite);
 
-            if (enemy.hp > 0 && enemy.hp < enemy.maxHp) {
+            if (enemy.hp > 0 && enemy.hp < enemy.maxHp && enemy.type != BossEnemy) {
                 window.draw(enemy.hpBarBack);
                 window.draw(enemy.hpBarFront);
             }
+
 
             for (auto& bullet : enemy.bullets) {
                 if (Bullet::isTextureLoaded) {
@@ -408,7 +540,42 @@ void Dungeon::draw(sf::RenderWindow& window) {
             }
         }
     }
+    if (activeRoom->type == BossRoom) {
+        for (auto& enemy : activeRoom->enemies) {
+            if (enemy.type == BossEnemy && enemy.isEnemyAlive) {
+
+                float hpPercent = static_cast<float>(enemy.hp) / enemy.maxHp;
+                if (hpPercent < 0) hpPercent = 0;
+
+                float barWidth = 600.f;
+                float barHeight = 20.f;
+
+                float barX = 100.f;
+                float barY = window.getSize().y - 50.f;
+
+                sf::RectangleShape bossBg(sf::Vector2f(barWidth, barHeight));
+                bossBg.setPosition(barX, barY);
+                bossBg.setFillColor(sf::Color(50, 0, 0));
+                bossBg.setOutlineThickness(2.f);
+                bossBg.setOutlineColor(sf::Color::White);
+
+                sf::RectangleShape bossFg(sf::Vector2f(barWidth * hpPercent, barHeight));
+                bossFg.setPosition(barX, barY);
+                bossFg.setFillColor(sf::Color::Red);
+
+
+                sf::View currentView = window.getView(); 
+                window.setView(window.getDefaultView()); 
+
+                window.draw(bossBg);
+                window.draw(bossFg);
+
+                window.setView(currentView); 
+            }
+        }
+    }
 }
+
 
 void Dungeon::drawMinimap(sf::RenderWindow& window) {
     float cellSize = 15.f;
@@ -422,6 +589,7 @@ void Dungeon::drawMinimap(sf::RenderWindow& window) {
     sf::RectangleShape cell(sf::Vector2f(cellSize, cellSize));
 
     for (auto& room : rooms) {
+        if (!room->isRevealed) continue;
 
         int relX = room->gridX - playerGridX;
         int relY = room->gridY - playerGridY;
@@ -441,7 +609,7 @@ void Dungeon::drawMinimap(sf::RenderWindow& window) {
             if (room->type == Treasure) {
                 cell.setFillColor(sf::Color::Yellow);
             }
-            else if (room->type == Boss) {
+            else if (room->type == BossRoom) {
                 cell.setFillColor(sf::Color::Red);
             }
             else if (room->isCleared) {
