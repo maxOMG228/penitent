@@ -123,10 +123,10 @@ int main()
                 player.hp = player.maxHp;
                 player.hitbox.setPosition(windowWidth / 2.f, windowHeight / 2.f);
                 player.hitbox.setFillColor(Color(255, 0, 0, 100));
-
+                player.keys = 0;
                 dungeon.currentRoomIndex = 0;
                 dungeon.generateRandomLevel(10);
-
+                
 
             }
             // pause trigger
